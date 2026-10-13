@@ -1,4 +1,8 @@
-// Configuración de Firebase para la versión independiente.
-// Pega aquí el objeto firebaseConfig de tu proyecto (Consola de Firebase → Configuración del proyecto → Tus apps → Web).
-// Mientras sea null, la app guarda los datos solo en este navegador.
-window.FIREBASE_CONFIG = null;
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA4gLC-tl9vayk2EpwXsQee8yWtjYBqiu4",
+  authDomain: "mi-cartera-20ffa.firebaseapp.com",
+  projectId: "mi-cartera-20ffa",
+  storageBucket: "mi-cartera-20ffa.firebasestorage.app",
+  messagingSenderId: "1067506934636",
+  appId: "1:1067506934636:web:027ba21a3a837c53978949"
+};
