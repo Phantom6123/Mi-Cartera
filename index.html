@@ -349,7 +349,7 @@ async function writeDoc(id,body,sig){
   if(sync.busy[id]){sync.again[id]=true;return}
   sync.busy[id]=true;sync.sig[id]=sig;setSync();
   try{const ref=sync.col.doc(id);if(body)await ref.set(JSON.parse(sig));else await ref.delete();sync.err=""}
-  catch(e){sync.err=(e&&e.code)||"error";sync.sig[id]=undefined;if(e&&e.code==="quota_exceeded")toast("No queda espacio en la nube para más datos")}
+  catch(e){sync.err=(e&&e.code)||"error";sync.sig[id]=undefined;if(e&&e.code==="quota_exceeded")toast("No queda espacio en la nube para más datos");else if(window.FIREBASE_CONFIG)toast("No se pudo guardar en la nube ("+sync.err+")")}
   sync.busy[id]=false;setSync();
   if(sync.again[id]){sync.again[id]=false;pushAll()}
 }
@@ -364,6 +364,7 @@ function setSync(){
   const pending=Object.values(sync.busy).some(Boolean);
   const st=!sync.on?["local","Solo en este dispositivo"]:sync.err?["warn","Sin conexión con la nube"]:(!sync.ready||pending)?["busy","Sincronizando…"]:["ok","Sincronizado"];
   el.className="sync "+st[0];el.querySelector("span").textContent=st[1];
+  const d=document.getElementById("syncDetail");if(d)d.textContent="Estado: "+st[1]+(sync.err?" ("+sync.err+")":"");
 }
 function attach(col){
   sync.col=col;sync.on=true;sync.ready=false;sync.sig={};setSync();
@@ -379,7 +380,7 @@ function attach(col){
     }else docs.forEach(d=>sync.sig[d.id]=JSON.stringify(d.data()));
     if(remote){const wasFirst=!sync.migrated;sync.migrated=true;S=remote;saveLocal();if(wasFirst)pushAll();if(!document.getElementById("dlg").open)render()}
     setSync();
-  },e=>{sync.err=(e&&e.code)||"error";setSync()});
+  },e=>{sync.err=(e&&e.code)||"error";setSync();if(window.FIREBASE_CONFIG)toast("No se pudo leer la nube ("+sync.err+")")});
 }
 async function startSync(){
   if(window.FIREBASE_CONFIG)return startFirebase();
@@ -470,7 +471,7 @@ function render(){
   const f={resumen:vResumen,movimientos:vMov,plan:vPlan,analisis:vAnalisis,proyeccion:vProy,ajustes:vAjustes}[ui.view];
   $view.innerHTML=(window.FIREBASE_CONFIG&&fb.checked&&!fb.user?`<div class="banner" style="margin-bottom:18px"><p><b>No has iniciado sesión.</b> Inicia sesión con Google para ver aquí los mismos datos que en tus otros aparatos.</p><button class="btn small" data-act="fbin">Iniciar sesión con Google</button></div>`:"")+(S.example?`<div class="banner" style="margin-bottom:18px"><p><b>Estos son datos de ejemplo.</b> Úsalos para explorar la app y, cuando quieras, empieza con tus propios números.</p><button class="btn small" data-act="wipe">Empezar desde cero</button><button class="btn small ghost" data-act="keep">Quedármelos</button></div>`:"")+f();
   $view.classList.remove("view");void $view.offsetWidth;$view.classList.add("view");
-  bindView();
+  bindView();setSync();
 }
 
 /* ---------- vistas ---------- */
@@ -788,7 +789,7 @@ function vAjustes(){
     <div><button class="btn" type="submit">Guardar</button></div>
    </form></section>
   ${window.FIREBASE_CONFIG?`<section class="panel"><header><h2>Tu cuenta</h2></header>
-    ${fb.user?`<p class="muted" style="margin:0 0 12px">Has iniciado sesión como <b>${esc(fb.user.email||"")}</b>. Tus datos se sincronizan entre tus dispositivos.</p><button class="btn small ghost" data-act="fbout">Cerrar sesión</button>`
+    ${fb.user?`<p class="muted" style="margin:0 0 12px">Has iniciado sesión como <b>${esc(fb.user.email||"")}</b>. Tus datos se sincronizan entre tus dispositivos.</p><p class="tiny" id="syncDetail" style="margin:0 0 12px"></p><div class="formacts" style="justify-content:flex-start"><button class="btn small" data-act="forcepush">Enviar los datos de este aparato a la nube</button><button class="btn small ghost" data-act="fbout">Cerrar sesión</button></div>`
     :`<p class="muted" style="margin:0 0 12px">Inicia sesión con tu cuenta de Google para guardar tus datos en la nube y verlos en el móvil y en la laptop.</p><button class="btn small" data-act="fbin">Iniciar sesión con Google</button>`}
   </section>`:""}
   <section class="panel"><header><h2>Copia de seguridad</h2></header>
@@ -833,6 +834,7 @@ function act(a){
   else if(a==="carsaved")openCarSaved();
   else if(a==="addcar")openItem("rec",undefined,{name:"Pago del carro",category:"Pago de carro",amount:"",freq:"mensual",start:Number(curMonth().slice(5)),day:2});
   else if(a==="fbin")fbSignIn();
+  else if(a==="forcepush"){if(!sync.on||!sync.ready)return toast("Primero inicia sesión y espera a que conecte");S.example=false;saveLocal();sync.sig={};pushAll();toast("Enviando tus datos a la nube");render()}
   else if(a==="fbout"){if(fb.auth)fb.auth.signOut();toast("Sesión cerrada")}
   else if(a==="copy"){const txt=JSON.stringify(S);const done=()=>toast("Copia de seguridad copiada");
     try{navigator.clipboard.writeText(txt).then(done,()=>fallbackCopy(txt))}catch(e){fallbackCopy(txt)}}
