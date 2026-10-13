@@ -190,6 +190,7 @@ dialog h2{font-size:1.25rem}
 .mcell.up{background:color-mix(in srgb,var(--in) 10%,transparent)}.mcell.up b{color:var(--in)}
 .mcell.down{background:color-mix(in srgb,var(--out) 10%,transparent)}.mcell.down b{color:var(--out)}
 .warnbox{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--warn) 12%,transparent);font-size:.9rem}
+.savedrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;background:var(--sunk);border-radius:10px;font-size:.9rem}
 .carrow{display:flex;justify-content:space-between;gap:12px;align-items:end;margin-bottom:10px}
 .carrow .v{font-family:var(--display);font-size:1.4rem;font-weight:700}
 .track.big{height:10px;background:var(--sunk);border-radius:6px;overflow:hidden}.track.big b{display:block;height:100%;background:var(--accent);border-radius:6px}
@@ -333,7 +334,7 @@ function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function save(){saveLocal();if(sync.on&&sync.ready)pushAll()}
 /* ---------- sincronización (claude.ai) ---------- */
 function cloudDocs(){
-  const cfg={};["v","settings","incomes","recurring","planned","expected","example"].forEach(k=>cfg[k]=S[k]);
+  const cfg={};["v","settings","incomes","recurring","planned","expected","example","carSaved"].forEach(k=>cfg[k]=S[k]);
   const docs={config:cfg};
   S.tx.forEach(t=>{const id="m-"+t.date.slice(0,7);(docs[id]=docs[id]||{tx:[]}).tx.push(t)});
   return docs;
@@ -494,6 +495,7 @@ function markPaid(id,paid){const t=S.tx.find(x=>x.id===id);if(!t)return;
 }
 
 /* ---------- pago del carro ---------- */
+const carSavedFor=k=>Number((S.carSaved||{})[k])||0;
 const carItem=()=>S.recurring.find(r=>r.category==="Pago de carro");
 const isCarTx=(t,c)=>t.type==="out"&&((t.link&&t.link.startsWith("rec:"+c.id+":"))||t.category==="Pago de carro");
 function nextDue(c,fromKey){const day=Number(c.day)||1;const d=Number(today().slice(8));let k=fromKey||curMonth();
@@ -504,11 +506,11 @@ function carStatus(){
   const list=txIn(col);const inc=list.filter(t=>t.type==="in").reduce((a,t)=>a+t.amount,0);
   const out=list.filter(t=>t.type==="out"&&!isCarTx(t,c)).reduce((a,t)=>a+t.amount,0);
   const pendingOut=col===cur?plannedFor(col).filter(it=>!(it.kind==="rec"&&it.ref.id===c.id)&&!S.tx.some(t=>t.link===it.link)).reduce((a,it)=>a+it.amount,0):0;
-  const avail=inc-out-pendingOut;const missing=Math.min(amt,Math.max(0,amt-avail)),deficit=Math.max(0,-avail);
+  const avail=inc-out-pendingOut;const saved=carSavedFor(due.k),got=saved+Math.max(0,avail);const missing=Math.min(amt,Math.max(0,amt-got)),deficit=Math.max(0,-avail);
   const dueDate=new Date(Number(due.k.slice(0,4)),Number(due.k.slice(5))-1,Math.min(due.day,28));
   const days=Math.max(0,Math.ceil((dueDate-new Date(today()+"T00:00"))/864e5));
   const H=v=>rate>0?Math.ceil(v/rate*2)/2:0;
-  return{c,amt,due,col,inc,out,pendingOut,avail,missing,deficit,hrs:H(missing),hrsAll:H(missing+deficit),days,rate,dueDate};
+  return{c,amt,due,col,inc,out,pendingOut,avail,saved,got,missing,deficit,hrs:H(missing),hrsAll:H(missing+deficit),days,rate,dueDate};
 }
 function carProjection(n=6){
   const c=carItem();if(!c)return[];const amt=Number(c.amount)||0,rate=Number(S.settings.rate)||0,fi=fixedIncome(),v=variableAvg(curMonth()),x=extraSpendAvg(curMonth());
@@ -516,7 +518,8 @@ function carProjection(n=6){
   for(let i=0;i<n;i++){const col=addM(due,-1);let avail,actual=false;
     if(col===curMonth()){const st=carStatus();avail=st.avail;actual=true}
     else{const inc=fi+expectedSum(col)+v;const out=plannedFor(col).filter(it=>!(it.kind==="rec"&&it.ref.id===c.id)).reduce((a,it)=>a+it.amount,0)+x;avail=inc-out}
-    const missing=Math.min(amt,Math.max(0,amt-avail)),deficit=Math.max(0,-avail);rows.push({due,col,avail,missing,deficit,hrs:rate>0?Math.ceil((missing+deficit)/rate*2)/2:0,actual});
+    const saved=carSavedFor(due),got=saved+Math.max(0,avail);
+    const missing=Math.min(amt,Math.max(0,amt-got)),deficit=Math.max(0,-avail);rows.push({due,col,avail,saved,got,missing,deficit,hrs:rate>0?Math.ceil((missing+deficit)/rate*2)/2:0,actual});
     due=nextDue(c,addM(due,1)).k}
   return rows;
 }
@@ -525,21 +528,30 @@ const dueLabel=(k,day)=>`${day} de ${monthName(k).split(" ")[0].toLowerCase()}`;
 function carCard(){
   const st=carStatus();
   if(!st)return `<section class="panel car"><header><h2>Pago del carro</h2></header><p class="muted" style="margin:0 0 12px">Añade el pago del carro como gasto fijo para seguir cuánto llevas apartado cada mes.</p><button class="btn small" data-act="addcar">+ Añadir pago del carro</button></section>`;
-  const pct=st.amt>0?Math.max(0,Math.min(100,st.avail/st.amt*100)):100;
+  const pct=st.amt>0?Math.max(0,Math.min(100,st.got/st.amt*100)):100;
   return `<section class="panel car"><header><h2>Pago del carro</h2><span class="tiny" style="display:flex;align-items:center;gap:4px">Vence el ${esc(dueLabel(st.due.k,st.due.day))}${st.days?` · faltan ${st.days} ${st.days===1?"día":"días"}`:" · hoy"}<button class="iconbtn" style="width:32px;height:32px" aria-label="Cambiar el monto del pago del carro" data-edit="rec:${st.c.id}">${svg("edit")}</button></span></header>
-    <div class="carrow"><div><div class="label">Llevas reunido</div><div class="v num">${money(Math.max(0,st.avail))} <span class="tiny">de ${money(st.amt)}</span></div></div>
+    <div class="carrow"><div><div class="label">Llevas reunido</div><div class="v num">${money(st.got)} <span class="tiny">de ${money(st.amt)}</span></div></div>
     <div style="text-align:right">${st.missing>0?`<div class="label">Te faltan</div><div class="v num neg">${money(st.missing)}</div>`:`<div class="label">Estado</div><div class="v pos">Cubierto</div>`}</div></div>
     <div class="track big"><b style="width:${pct}%"></b></div>
-    <p style="margin:10px 0 0">${st.missing>0?(st.rate>0?`Para el carro necesitas <b>${fmtHrs(st.hrs)} horas de clase más</b> a ${money(st.rate)}/h antes del ${esc(dueLabel(st.due.k,st.due.day))}${st.days>=7?` (unas ${fmtHrs(Math.ceil(st.hrs/(st.days/7)*2)/2)} h por semana)`:""}.`:`Te faltan ${money(st.missing)}.`):`Con lo que llevas en ${esc(monthName(st.col).split(" ")[0].toLowerCase())} ya cubres el pago.`}</p>
-    ${st.deficit>0?`<p class="warnbox">Además, este mes tus gastos superan tus ingresos en <b>${money(st.deficit)}</b>. Ese dinero hay que cubrirlo antes de empezar a juntar para el carro${st.rate>0?`: en total son <b>${fmtHrs(st.hrsAll)} horas de clase</b>`:""}.</p>`:""}
-    <p class="tiny" style="margin:6px 0 0">Ingresos de ${esc(monthName(st.col).split(" ")[0].toLowerCase())} (${money(st.inc,{dec:0})}) menos sus gastos (${money(st.out,{dec:0})})${st.pendingOut?` y los fijos que aún te quedan por pagar este mes (${money(st.pendingOut,{dec:0})})`:""} = ${money(st.avail)}.</p>
+    <div class="savedrow"><span>Ahorro ya apartado para este pago: <b class="num">${money(st.saved)}</b></span><button class="btn small ghost" data-act="carsaved">${st.saved?"Cambiar":"+ Añadir ahorro"}</button></div>
+    <p style="margin:10px 0 0">${st.missing>0?(st.rate>0?`Para el carro necesitas <b>${fmtHrs(st.hrs)} horas de clase más</b> a ${money(st.rate)}/h antes del ${esc(dueLabel(st.due.k,st.due.day))}${st.days>=7?` (unas ${fmtHrs(Math.ceil(st.hrs/(st.days/7)*2)/2)} h por semana)`:""}.`:`Te faltan ${money(st.missing)}.`):`Con lo que llevas reunido ya cubres el pago.`}</p>
+    ${st.deficit>0?`<p class="warnbox">Además, este mes tus gastos superan tus ingresos en <b>${money(st.deficit)}</b>${st.rate>0?`. ${st.missing>0?"Sumando lo del carro, en total necesitas":"Para cubrirlo necesitas"} <b>${fmtHrs(st.hrsAll)} horas de clase</b>`:""}.</p>`:""}
+    <p class="tiny" style="margin:6px 0 0">Ingresos de ${esc(monthName(st.col).split(" ")[0].toLowerCase())} (${money(st.inc,{dec:0})}) menos sus gastos (${money(st.out,{dec:0})})${st.pendingOut?` y los fijos que aún te quedan por pagar este mes (${money(st.pendingOut,{dec:0})})`:""} = ${money(st.avail)}${st.saved?`, más ${money(st.saved)} de ahorro apartado`:""}.</p>
   </section>`;
+}
+function openCarSaved(){
+  const st=carStatus();if(!st)return;const cur=carSavedFor(st.due.k);
+  openDlg(`<h2>Ahorro para el carro</h2>
+    <p class="muted" style="margin:0">Dinero que ya tienes guardado para el pago del ${esc(dueLabel(st.due.k,st.due.day))}. No lo anotes también como ingreso, para no contarlo dos veces.</p>
+    <div class="field"><label for="csA">Monto apartado</label><input id="csA" name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(cur||"")}" placeholder="0.00"></div>
+    ${acts(!!cur)}`,fd=>{const v=round(Number(fd.get("amount"))||0);S.carSaved=Object.assign({},S.carSaved);if(v>0)S.carSaved[st.due.k]=v;else delete S.carSaved[st.due.k];toast(v>0?"Ahorro guardado":"Ahorro quitado")},
+    ()=>{S.carSaved=Object.assign({},S.carSaved);delete S.carSaved[st.due.k]});
 }
 function carPanel(){
   const rows=carProjection();const st=carStatus();if(!st)return "";
   return `<section class="panel"><header><h2>Pago del carro, mes a mes</h2><span class="tiny">${money(st.amt)} cada día ${st.due.day}</span></header>
-    <div class="tablewrap"><table><thead><tr><th>Pago</th><th>Se junta en</th><th>Te sobraría</th><th>Falta para el carro</th><th>Déficit aparte</th><th>Horas extra</th></tr></thead><tbody>
-    ${rows.map(r=>`<tr><td>${esc(dueLabel(r.due,st.due.day))}</td><td>${esc(monthName(r.col).split(" ")[0])}${r.actual?" (real)":""}</td><td>${money(Math.max(0,r.avail),{dec:0})}</td><td class="${r.missing>0?"neg":"pos"}">${r.missing>0?money(r.missing,{dec:0}):"Cubierto"}</td><td class="${r.deficit>0?"neg":""}">${r.deficit>0?money(r.deficit,{dec:0}):"—"}</td><td>${r.missing+r.deficit>0?fmtHrs(r.hrs)+" h":"—"}</td></tr>`).join("")}
+    <div class="tablewrap"><table><thead><tr><th>Pago</th><th>Se junta en</th><th>Reunido</th><th>Falta para el carro</th><th>Déficit aparte</th><th>Horas extra</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td>${esc(dueLabel(r.due,st.due.day))}</td><td>${esc(monthName(r.col).split(" ")[0])}${r.actual?" (real)":""}</td><td>${money(r.got,{dec:0})}${r.saved?`<br><span class="tiny">incl. ${money(r.saved,{dec:0})} apartado</span>`:""}</td><td class="${r.missing>0?"neg":"pos"}">${r.missing>0?money(r.missing,{dec:0}):"Cubierto"}</td><td class="${r.deficit>0?"neg":""}">${r.deficit>0?money(r.deficit,{dec:0}):"—"}</td><td>${r.missing+r.deficit>0?fmtHrs(r.hrs)+" h":"—"}</td></tr>`).join("")}
     </tbody></table></div>
     <p class="tiny" style="margin:10px 0 0">El mes en curso usa lo que has anotado. Los siguientes suponen tus fijos, décimos y bonos, tus clases habituales (media reciente) y tus gastos de siempre. Las horas extra cubren lo que falta para el carro más el déficit, además de tus clases habituales, a ${money(st.rate)}/h.</p>
   </section>`;
@@ -817,6 +829,7 @@ function act(a){
   if(a==="wipe"){S=blank();save();toast("Listo, empieza con tus datos");render()}
   else if(a==="keep"){S.example=false;save();render()}
   else if(a==="newtx")openTx();
+  else if(a==="carsaved")openCarSaved();
   else if(a==="addcar")openItem("rec",undefined,{name:"Pago del carro",category:"Pago de carro",amount:"",freq:"mensual",start:Number(curMonth().slice(5)),day:2});
   else if(a==="fbin")fbSignIn();
   else if(a==="fbout"){if(fb.auth)fb.auth.signOut();toast("Sesión cerrada")}
