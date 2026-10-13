@@ -366,12 +366,13 @@ function setSync(){
   el.className="sync "+st[0];el.querySelector("span").textContent=st[1];
   const d=document.getElementById("syncDetail");if(d)d.textContent="Estado: "+st[1]+(sync.err?" ("+sync.err+")":"");
 }
-function attach(col){
+function attach(col,fbOpts){
   sync.col=col;sync.on=true;sync.ready=false;sync.sig={};setSync();
   let first=true;
-  return col.onSnapshot(snap=>{
+  const onNext=snap=>{
     if(first&&snap.metadata.fromCache)return;
     if(!first&&(snap.metadata.hasPendingWrites||Object.values(sync.busy).some(Boolean)))return;
+    if(!first&&fbOpts&&snap.docChanges&&!snap.docChanges().length)return;
     const docs=snap.docs.filter(d=>d.exists);
     const remote=fromCloud(docs);
     if(first){first=false;sync.ready=true;
@@ -380,7 +381,10 @@ function attach(col){
     }else docs.forEach(d=>sync.sig[d.id]=JSON.stringify(d.data()));
     if(remote){const wasFirst=!sync.migrated;sync.migrated=true;S=remote;saveLocal();if(wasFirst)pushAll();if(!document.getElementById("dlg").open)render()}
     setSync();
-  },e=>{sync.err=(e&&e.code)||"error";setSync();if(window.FIREBASE_CONFIG)toast("No se pudo leer la nube ("+sync.err+")")});
+  };
+  const onErr=e=>{sync.err=(e&&e.code)||"error";setSync();if(window.FIREBASE_CONFIG)toast("No se pudo leer la nube ("+sync.err+")")};
+  /* Firestore no avisa cuando la nube confirma lo mismo que ya había en caché, salvo con includeMetadataChanges */
+  return fbOpts?col.onSnapshot(fbOpts,onNext,onErr):col.onSnapshot(onNext,onErr);
 }
 async function startSync(){
   if(window.FIREBASE_CONFIG)return startFirebase();
@@ -404,7 +408,7 @@ async function startFirebase(){
     fb.auth.getRedirectResult().catch(()=>{});
     fb.auth.onAuthStateChanged(u=>{
       fb.user=u;fb.checked=true;if(fb.unsub){fb.unsub();fb.unsub=null}
-      if(u)fb.unsub=attach(fs.collection("users").doc(u.uid).collection("docs"));
+      if(u)fb.unsub=attach(fs.collection("users").doc(u.uid).collection("docs"),{includeMetadataChanges:true});
       else{sync.on=false;sync.col=null;setSync()}
       if(!document.getElementById("dlg").open)render();
     });
