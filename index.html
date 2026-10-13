@@ -153,9 +153,9 @@ tr.hl td{background:var(--accent-soft)}
 .legend i.ln{height:3px;border-radius:2px}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.8rem;padding:8px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-110%);z-index:2}
 
-.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:10}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:10}
 @media (min-width:860px){.tabs{display:none}}
-.tabs button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.72rem;color:var(--ink3);padding:6px 0;border-radius:10px}
+.tabs button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.68rem;min-width:0;white-space:nowrap;color:var(--ink3);padding:6px 0;border-radius:10px}
 .tabs button svg{width:22px;height:22px}
 .tabs button[aria-current="true"]{color:var(--accent);font-weight:600}
 .fab{position:fixed;right:18px;bottom:calc(78px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:18px;border:0;background:var(--accent);color:var(--accent-ink);box-shadow:0 6px 18px rgba(0,0,0,.18);display:grid;place-items:center;z-index:11}
@@ -231,6 +231,7 @@ dialog h2{font-size:1.25rem}
   <button data-go="plan"></button>
   <button data-go="analisis"></button>
   <button data-go="proyeccion"></button>
+  <button data-go="ajustes"></button>
 </nav>
 <button class="fab" id="fab" aria-label="Nuevo movimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>
 <dialog id="dlg"><form id="dlgForm" method="dialog"></form></dialog>
@@ -401,10 +402,10 @@ async function startFirebase(){
     fb.auth=firebase.auth();
     fb.auth.getRedirectResult().catch(()=>{});
     fb.auth.onAuthStateChanged(u=>{
-      fb.user=u;if(fb.unsub){fb.unsub();fb.unsub=null}
+      fb.user=u;fb.checked=true;if(fb.unsub){fb.unsub();fb.unsub=null}
       if(u)fb.unsub=attach(fs.collection("users").doc(u.uid).collection("docs"));
       else{sync.on=false;sync.col=null;setSync()}
-      if(ui.view==="ajustes")render();
+      if(!document.getElementById("dlg").open)render();
     });
   }catch(e){sync.err="offline";setSync()}
 }
@@ -467,7 +468,7 @@ function render(){
   document.getElementById("monthLabel").textContent=monthName(ui.month);
   document.getElementById("monthnav").hidden=!(ui.view==="resumen"||ui.view==="movimientos");
   const f={resumen:vResumen,movimientos:vMov,plan:vPlan,analisis:vAnalisis,proyeccion:vProy,ajustes:vAjustes}[ui.view];
-  $view.innerHTML=(S.example?`<div class="banner" style="margin-bottom:18px"><p><b>Estos son datos de ejemplo.</b> Úsalos para explorar la app y, cuando quieras, empieza con tus propios números.</p><button class="btn small" data-act="wipe">Empezar desde cero</button><button class="btn small ghost" data-act="keep">Quedármelos</button></div>`:"")+f();
+  $view.innerHTML=(window.FIREBASE_CONFIG&&fb.checked&&!fb.user?`<div class="banner" style="margin-bottom:18px"><p><b>No has iniciado sesión.</b> Inicia sesión con Google para ver aquí los mismos datos que en tus otros aparatos.</p><button class="btn small" data-act="fbin">Iniciar sesión con Google</button></div>`:"")+(S.example?`<div class="banner" style="margin-bottom:18px"><p><b>Estos son datos de ejemplo.</b> Úsalos para explorar la app y, cuando quieras, empieza con tus propios números.</p><button class="btn small" data-act="wipe">Empezar desde cero</button><button class="btn small ghost" data-act="keep">Quedármelos</button></div>`:"")+f();
   $view.classList.remove("view");void $view.offsetWidth;$view.classList.add("view");
   bindView();
 }
