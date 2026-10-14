@@ -101,6 +101,8 @@ main{min-width:0;padding-inline:16px;padding-block:0 110px;max-width:980px;width
 .goal{background:var(--accent);color:var(--accent-ink);border-radius:var(--r);padding:18px;display:grid;gap:10px}
 .goal .big{font-family:var(--display);font-size:2rem;font-weight:700;line-height:1.1}
 .goal .label{color:inherit;opacity:.8}
+.surplus{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0 4px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,currentColor 12%,transparent)}
+.surplus .num{font-family:var(--display);font-size:1.5rem;font-weight:700}
 .bar{height:10px;border-radius:6px;background:color-mix(in srgb,var(--accent-ink) 22%,transparent);overflow:hidden}
 .bar>b{display:block;height:100%;background:var(--accent-ink);border-radius:6px}
 .goal p{margin:0;font-size:.92rem}
@@ -696,7 +698,8 @@ function vResumen(){
     <div class="label">Necesitas ganar este mes</div>
     <div class="big num">${money(N.need)}</div>
     <div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><b style="width:${pct}%"></b></div>
-    <p>${T.paid>=N.need?`Ya cubriste tus gastos previstos${S.settings.savings>0?" y tu ahorro":""}. Llevas <b>${money(T.paid)}</b> de ingresos.`:`Llevas <b>${money(T.paid)}</b>. Te faltan <b>${money(missing)}</b>${rate>0?`, unas <b>${String(hrs).replace(".",",")} horas de clase</b> a ${money(rate)}/h`:""}.`}</p>
+    ${T.paid>=N.need&&N.need>0?`<div class="surplus"><span class="label">Meta lograda · Excedente</span><span class="num">+${money(T.paid-N.need)}</span></div>`:""}
+    <p>${T.paid>=N.need?`Ya cubriste tus gastos previstos${S.settings.savings>0?" y tu ahorro":""}. Llevas <b>${money(T.paid)}</b> de ingresos, <b>${money(T.paid-N.need)}</b> más de lo que necesitabas.`:`Llevas <b>${money(T.paid)}</b>. Te faltan <b>${money(missing)}</b>${rate>0?`, unas <b>${String(hrs).replace(".",",")} horas de clase</b> a ${money(rate)}/h`:""}.`}</p>
     ${T.pend||AG.amt?`<p class="tiny" style="color:inherit;opacity:.9">${[T.pend?`${money(T.pend)} en clases por cobrar`:"",AG.amt?`${money(AG.amt)} en ${AG.n} ${AG.n===1?"clase agendada":"clases agendadas"}`:""].filter(Boolean).join(" y ")}${missing>0?(T.pend+AG.amt>=missing?". Con eso cubrirías lo que falta.":`. Con eso te faltarían ${money(missing-T.pend-AG.amt)}.`):"."}</p>`:""}
     <p class="tiny" style="color:inherit;opacity:.8">${money(N.exp)} de gastos previstos${S.settings.savings>0?` + ${money(S.settings.savings)} de ahorro`:""}</p>
   </section>
