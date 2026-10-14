@@ -78,7 +78,7 @@ main{min-width:0;padding-inline:16px;padding-block:0 110px;max-width:980px;width
 .sync.ok i{background:var(--in)}.sync.busy i{background:var(--warn)}.sync.warn i{background:var(--out)}
 @media (max-width:520px){.sync span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.top h1{font-size:1.4rem}}
 .desk-only{display:none}
-@media (min-width:860px){.desk-only{display:inline-flex}}
+@media (min-width:860px){.desk-only{display:inline-flex}.mob-only{display:none}}
 
 .monthnav{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:2px}
 .monthnav span{min-width:118px;text-align:center;font-weight:600;font-size:.92rem}
@@ -118,6 +118,8 @@ main{min-width:0;padding-inline:16px;padding-block:0 110px;max-width:980px;width
 .row .acts{display:flex;gap:4px;align-items:center}
 .row .acts .iconbtn{width:32px;height:32px}
 .row .acts .iconbtn svg{width:18px;height:18px}
+.row.late .t small{color:var(--warn)}
+@media (max-width:520px){.row.cls{grid-template-columns:auto 1fr}.row.cls .acts{grid-column:1/-1;justify-content:flex-end}}
 .chip{font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
 .chipbtn{border:0;cursor:pointer;font:inherit;font-size:.72rem;font-weight:600;padding:5px 10px}
 .warnchip{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
@@ -153,9 +155,9 @@ tr.hl td{background:var(--accent-soft)}
 .legend i.ln{height:3px;border-radius:2px}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.8rem;padding:8px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-110%);z-index:2}
 
-.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:10}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(7,1fr);padding:6px 2px calc(6px + env(safe-area-inset-bottom,0px));z-index:10}
 @media (min-width:860px){.tabs{display:none}}
-.tabs button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.68rem;min-width:0;white-space:nowrap;color:var(--ink3);padding:6px 0;border-radius:10px}
+.tabs button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.64rem;min-width:0;white-space:nowrap;color:var(--ink3);padding:6px 0;border-radius:10px}
 .tabs button svg{width:22px;height:22px}
 .tabs button[aria-current="true"]{color:var(--accent);font-weight:600}
 .fab{position:fixed;right:18px;bottom:calc(78px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:18px;border:0;background:var(--accent);color:var(--accent-ink);box-shadow:0 6px 18px rgba(0,0,0,.18);display:grid;place-items:center;z-index:11}
@@ -204,6 +206,7 @@ dialog h2{font-size:1.25rem}
   <nav class="rail" aria-label="Secciones">
     <div class="brand"><i></i>Mi Cartera</div>
     <button data-go="resumen"></button>
+    <button data-go="clases"></button>
     <button data-go="movimientos"></button>
     <button data-go="plan"></button>
     <button data-go="analisis"></button>
@@ -227,6 +230,7 @@ dialog h2{font-size:1.25rem}
 </div>
 <nav class="tabs" aria-label="Secciones">
   <button data-go="resumen"></button>
+  <button data-go="clases"></button>
   <button data-go="movimientos"></button>
   <button data-go="plan"></button>
   <button data-go="analisis"></button>
@@ -243,6 +247,7 @@ dialog h2{font-size:1.25rem}
 const KEY="micartera.v1";
 const ICONS={
   resumen:'<path d="M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z"/>',
+  clases:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   movimientos:'<path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/>',
   plan:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
   analisis:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
@@ -251,8 +256,8 @@ const ICONS={
   edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   trash:'<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>'
 };
-const NAMES={resumen:"Resumen",movimientos:"Movimientos",plan:"Fijos y previstos",analisis:"Análisis",proyeccion:"Proyección",ajustes:"Ajustes"};
-const SHORT={resumen:"Resumen",movimientos:"Mov.",plan:"Fijos",analisis:"Análisis",proyeccion:"Proyección",ajustes:"Ajustes"};
+const NAMES={resumen:"Resumen",clases:"Clases",movimientos:"Movimientos",plan:"Fijos y previstos",analisis:"Análisis",proyeccion:"Proyección",ajustes:"Ajustes"};
+const SHORT={resumen:"Resumen",clases:"Clases",movimientos:"Mov.",plan:"Fijos",analisis:"Análisis",proyeccion:"Proyec.",ajustes:"Ajustes"};
 const svg=(n)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]}</svg>`;
 const CAT_OUT=["Vivienda","Servicios","Alimentación","Transporte","Gasolina","Pago de carro","Seguro privado","Salud","Educación","Ocio","Suscripciones","Deudas","Ropa","Regalos","Otros"];
 const CAT_IN=["Sueldo","Vale General","Clases particulares","Décimo","Bono Navideño","Ventas","Otros ingresos"];
@@ -283,7 +288,7 @@ function defaults(s){
   if(!s.recurring.some(r=>r.category==="Pago de carro"))s.recurring.push({id:uid(),name:"Pago del carro",category:"Pago de carro",amount:404.13,freq:"mensual",start:1,day:2});
   return s;
 }
-function blank(){return defaults({v:6,settings:{currency:"USD",rate:35,savings:0},incomes:[],recurring:[],planned:[],expected:[],tx:[],example:false})}
+function blank(){return defaults({v:6,settings:{currency:"USD",rate:35,savings:0},incomes:[],recurring:[],planned:[],expected:[],agenda:[],tx:[],example:false})}
 function sample(){
   const s=blank();s.example=true;s.settings.rate=35;s.settings.savings=150;
   const c=curMonth();
@@ -319,7 +324,7 @@ let S;
 function normalize(s){
   s.incomes=s.incomes||[];s.recurring=s.recurring||[];s.planned=s.planned||[];s.tx=s.tx||[];s.settings=s.settings||{currency:"USD",rate:35,savings:0};
   if(!s.v||s.v<2){s.v=2;s.settings.currency="USD";defaults(s)}
-  s.expected=s.expected||[];
+  s.expected=s.expected||[];s.agenda=s.agenda||[];
   if(s.v<3){s.v=3;s.expected.forEach(e=>{if(!Number(e.amount)){if(/d[eé]cimo/i.test(e.name))e.amount=482.99;if(/bono navide/i.test(e.name))e.amount=500}})}
   if(s.v<4){s.v=4;s.settings.rate=35}
   if(s.v<5){s.v=5;s.recurring=s.recurring||[];const car=s.recurring.find(r=>r.category==="Pago de carro");
@@ -335,7 +340,7 @@ function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function save(){saveLocal();if(sync.on&&sync.ready)pushAll()}
 /* ---------- sincronización (claude.ai) ---------- */
 function cloudDocs(){
-  const cfg={};["v","settings","incomes","recurring","planned","expected","example","carSaved"].forEach(k=>cfg[k]=S[k]);
+  const cfg={};["v","settings","incomes","recurring","planned","expected","agenda","example","carSaved"].forEach(k=>cfg[k]=S[k]);
   const docs={config:cfg};
   S.tx.forEach(t=>{const id="m-"+t.date.slice(0,7);(docs[id]=docs[id]||{tx:[]}).tx.push(t)});
   return docs;
@@ -451,7 +456,7 @@ function findIncomeTx(kind,item,key){const link=kind+":"+item.id+":"+key;
 function monthTotals(key){
   const list=txIn(key);let inc=0,incFix=0,incVar=0,out=0,hours=0;
   let pend=0;list.forEach(t=>{if(t.type==="in"){inc+=t.amount;if(t.pending)pend+=t.amount;if(isFixTx(t))incFix+=t.amount;else incVar+=t.amount;if(t.hours)hours+=Number(t.hours)}else out+=t.amount});
-  return{inc,incFix,incVar,out,bal:inc-out,hours,list,pend};
+  return{inc,incFix,incVar,out,bal:inc-out,hours,list,pend,paid:inc-pend,cash:inc-pend-out};
 }
 function variableAvg(beforeKey,n=3){let sum=0,cnt=0;for(let i=1;i<=n;i++){const k=addM(beforeKey,-i);const t=monthTotals(k);if(t.list.length){sum+=t.list.filter(x=>x.type==="in"&&!isFixTx(x)&&!isExpTx(x)).reduce((a,x)=>a+x.amount,0);cnt++}}return cnt?sum/cnt:0}
 function extraSpendAvg(beforeKey,n=3){let sum=0,cnt=0;for(let i=1;i<=n;i++){const k=addM(beforeKey,-i);const t=monthTotals(k);if(t.list.length){sum+=t.list.filter(x=>x.type==="out"&&!(x.link&&/^(rec|pln):/.test(x.link))).reduce((a,x)=>a+x.amount,0);cnt++}}return cnt?sum/cnt:0}
@@ -462,17 +467,18 @@ document.querySelectorAll("[data-go]").forEach(b=>{const v=b.dataset.go;b.innerH
 function go(v){ui.view=v;try{localStorage.setItem(KEY+".view",v)}catch(e){}render();window.scrollTo(0,0)}
 document.getElementById("prevM").onclick=()=>{ui.month=addM(ui.month,-1);render()};
 document.getElementById("nextM").onclick=()=>{ui.month=addM(ui.month,1);render()};
-document.getElementById("fab").onclick=()=>openTx();
+document.getElementById("fab").onclick=()=>ui.view==="clases"?openClass():openTx();
 document.getElementById("syncState").onclick=()=>{if(window.FIREBASE_CONFIG&&!fb.user)go("ajustes")};
-document.getElementById("addDesk").onclick=()=>openTx();
+document.getElementById("addDesk").onclick=()=>ui.view==="clases"?openClass():openTx();
 
 const $view=document.getElementById("view");
 function render(){
   document.querySelectorAll("[data-go]").forEach(b=>b.setAttribute("aria-current",String(b.dataset.go===ui.view)));
   document.getElementById("title").textContent=NAMES[ui.view];
+  document.getElementById("addDesk").textContent=ui.view==="clases"?"+ Agendar clase":"+ Nuevo movimiento";document.getElementById("fab").setAttribute("aria-label",ui.view==="clases"?"Agendar clase":"Nuevo movimiento");
   document.getElementById("monthLabel").textContent=monthName(ui.month);
   document.getElementById("monthnav").hidden=!(ui.view==="resumen"||ui.view==="movimientos");
-  const f={resumen:vResumen,movimientos:vMov,plan:vPlan,analisis:vAnalisis,proyeccion:vProy,ajustes:vAjustes}[ui.view];
+  const f={resumen:vResumen,clases:vClases,movimientos:vMov,plan:vPlan,analisis:vAnalisis,proyeccion:vProy,ajustes:vAjustes}[ui.view];
   $view.innerHTML=(window.FIREBASE_CONFIG&&fb.checked&&!fb.user?`<div class="banner" style="margin-bottom:18px"><p><b>No has iniciado sesión.</b> Inicia sesión con Google para ver aquí los mismos datos que en tus otros aparatos.</p><button class="btn small" data-act="fbin">Iniciar sesión con Google</button></div>`:"")+(S.example?`<div class="banner" style="margin-bottom:18px"><p><b>Estos son datos de ejemplo.</b> Úsalos para explorar la app y, cuando quieras, empieza con tus propios números.</p><button class="btn small" data-act="wipe">Empezar desde cero</button><button class="btn small ghost" data-act="keep">Quedármelos</button></div>`:"")+f();
   $view.classList.remove("view");void $view.offsetWidth;$view.classList.add("view");
   bindView();setSync();
@@ -483,21 +489,87 @@ function txRow(t){
   const isIn=t.type==="in";const ini=(t.category||"?").slice(0,2);
   const sub=[dayLabel(t.date),t.category,t.hours?`${t.hours} h × ${money(Number(t.rate))}`:""].filter(Boolean).join(" · ");
   return `<div class="row"><div class="dot ${isIn?"in":"out"}">${esc(ini)}</div><div class="t"><b>${esc(t.note||t.category)}</b><small>${esc(sub)}</small></div>
-  <div class="acts">${t.pending?`<button class="chip warnchip chipbtn" data-paid="${t.id}" aria-label="Marcar como cobrada">Por cobrar · Cobrado</button>`:""}<span class="amt num ${isIn?"pos":"neg"}">${isIn?"+":"−"}${money(t.amount)}</span><button class="iconbtn" aria-label="Editar" data-edit-tx="${t.id}">${svg("edit")}</button></div></div>`;
+  <div class="acts">${t.pending?`<button class="chip warnchip chipbtn" data-paid="${t.id}" aria-label="Marcar como pagada">Por cobrar · Pagada</button>`:""}<span class="amt num ${isIn?"pos":"neg"}">${isIn?"+":"−"}${money(t.amount)}</span><button class="iconbtn" aria-label="Editar" data-edit-tx="${t.id}">${svg("edit")}</button></div></div>`;
 }
 function pendingPanel(){
   const list=S.tx.filter(t=>t.pending).sort((a,b)=>a.date.localeCompare(b.date));if(!list.length)return "";
   const tot=list.reduce((a,t)=>a+t.amount,0),hrs=list.reduce((a,t)=>a+(Number(t.hours)||0),0);
   return `<section class="panel"><header><h2>Clases por cobrar</h2><span class="num tiny">${money(tot)}${hrs?` · ${fmtHrs(hrs)} h`:""}</span></header>
     <div class="rows">${list.map(t=>`<div class="row"><div class="dot in">Cl</div><div class="t"><b>${esc(t.note||t.category)}</b><small>${esc([dayLabel(t.date),t.hours?`${t.hours} h × ${money(Number(t.rate))}`:""].filter(Boolean).join(" · "))}</small></div>
-    <div class="acts"><span class="amt num">${money(t.amount)}</span><button class="btn small" data-paid="${t.id}">Cobrado</button><button class="iconbtn" aria-label="Editar o eliminar" data-edit-tx="${t.id}">${svg("edit")}</button></div></div>`).join("")}</div>
-    <p class="tiny" style="margin:10px 0 0">Ya cuentan en tus ingresos, el análisis y la proyección. Toca «Cobrado» cuando los papás te paguen.</p>
+    <div class="acts"><span class="amt num">${money(t.amount)}</span><button class="btn small" data-paid="${t.id}">Pagada</button><button class="iconbtn" aria-label="Editar o eliminar" data-edit-tx="${t.id}">${svg("edit")}</button></div></div>`).join("")}</div>
+    <p class="tiny" style="margin:10px 0 0">Cuentan en el análisis y la proyección. Toca «Pagada» cuando los papás te paguen y el monto se sumará a tus ingresos cobrados.</p>
   </section>`;
 }
 function markPaid(id,paid){const t=S.tx.find(x=>x.id===id);if(!t)return;
   if(paid){t.pending=false;t.paidOn=today()}else{t.pending=true;delete t.paidOn}
   save();render();
-  if(paid)toast("Clase marcada como cobrada",{label:"Deshacer",fn:()=>markPaid(id,false)});else toast("La clase vuelve a estar por cobrar");
+  if(paid)toast("Pagada: "+money(t.amount)+" sumado a tus ingresos",{label:"Deshacer",fn:()=>markPaid(id,false)});else toast("La clase vuelve a estar por cobrar");
+}
+
+/* ---------- agenda de clases ---------- */
+const clsKey=a=>a.date+" "+(a.time||"");
+const agendaSorted=()=>[...(S.agenda||[])].sort((a,b)=>clsKey(a).localeCompare(clsKey(b)));
+function agendaIn(k){const l=(S.agenda||[]).filter(a=>a.date.slice(0,7)===k);return{n:l.length,amt:l.reduce((x,a)=>x+Number(a.amount||0),0),hrs:l.reduce((x,a)=>x+(Number(a.hours)||0),0)}}
+const timeLabel=t=>t?t.slice(0,5):"";
+function clsRow(a){
+  const late=a.date<today();
+  const sub=[dayLabel(a.date)+(a.time?" · "+timeLabel(a.time):""),a.hours?`${fmtHrs(a.hours)} h × ${money(Number(a.rate))}`:"",late?"¿La diste?":""].filter(Boolean).join(" · ");
+  return `<div class="row cls${late?" late":""}"><div class="dot">Cl</div><div class="t"><b>${esc(a.note||"Clase")}</b><small>${esc(sub)}</small></div>
+  <div class="acts"><span class="amt num">${money(Number(a.amount))}</span><button class="btn small" data-given="${a.id}">Dada</button><button class="iconbtn" aria-label="Editar o eliminar" data-edit-cls="${a.id}">${svg("edit")}</button></div></div>`;
+}
+function nextClassesPanel(){
+  const list=agendaSorted();if(!list.length)return "";
+  const show=list.slice(0,3);
+  return `<section class="panel"><header><h2>Próximas clases</h2><button class="btn small ghost" data-go2="clases">Ver agenda (${list.length})</button></header>
+    <div class="rows">${show.map(clsRow).join("")}</div></section>`;
+}
+function vClases(){
+  const cur=curMonth(),list=agendaSorted(),AG=agendaIn(cur);
+  const pend=S.tx.filter(t=>t.pending),pTot=pend.reduce((a,t)=>a+t.amount,0);
+  const paid=S.tx.filter(t=>t.type==="in"&&t.category===CLASS_CAT&&!t.pending&&(t.paidOn||t.date).slice(0,7)===cur).sort((a,b)=>(b.paidOn||b.date).localeCompare(a.paidOn||a.date));
+  const pdTot=paid.reduce((a,t)=>a+t.amount,0);
+  return `<div class="stack">
+  <div class="mob-only"><button class="btn" data-act="newclass">+ Agendar clase</button></div>
+  <div class="kpis">
+    <div class="k"><div class="label">Agendadas</div><div class="v num">${money(AG.amt)}</div><div class="s">${AG.n} ${AG.n===1?"clase":"clases"} en ${esc(monthName(cur).split(" ")[0].toLowerCase())}${AG.hrs?` · ${fmtHrs(AG.hrs)} h`:""}</div></div>
+    <div class="k"><div class="label">Dadas, por cobrar</div><div class="v num" style="color:var(--warn)">${money(pTot)}</div><div class="s">${pend.length} ${pend.length===1?"clase":"clases"}</div></div>
+    <div class="k"><div class="label">Pagadas este mes</div><div class="v num pos">${money(pdTot)}</div><div class="s">${paid.length} ${paid.length===1?"clase":"clases"}</div></div>
+  </div>
+  <section class="panel"><header><h2>Agendadas</h2><span class="tiny">Toca «Dada» cuando la hayas dado</span></header>
+    ${list.length?`<div class="rows">${list.map(clsRow).join("")}</div>`:`<div class="empty">No tienes clases agendadas.<br><br><button class="btn small" data-act="newclass">+ Agendar clase</button></div>`}</section>
+  ${pendingPanel()||`<section class="panel"><header><h2>Clases por cobrar</h2></header><div class="empty">No tienes clases pendientes de pago.</div></section>`}
+  <section class="panel"><header><h2>Pagadas en ${esc(monthName(cur).split(" ")[0].toLowerCase())}</h2></header>
+    ${paid.length?`<div class="rows">${paid.map(txRow).join("")}</div>`:`<div class="empty">Aún no has cobrado clases este mes.</div>`}</section>
+  </div>`;
+}
+function markGiven(id){
+  const a=(S.agenda||[]).find(x=>x.id===id);if(!a)return;
+  const t={id:uid(),type:"in",category:CLASS_CAT,amount:round(Number(a.amount)||0),date:a.date,note:a.note||"Clase",hours:a.hours?Number(a.hours):undefined,rate:a.rate?Number(a.rate):undefined,pending:true};
+  S.agenda=S.agenda.filter(x=>x.id!==id);S.tx.push(t);save();render();
+  toast("Clase dada, queda por cobrar",{label:"Deshacer",fn:()=>{S.tx=S.tx.filter(x=>x.id!==t.id);S.agenda.push(a);save();render()}});
+}
+function openClass(a){
+  const ed=!!a;
+  a=a||{date:today(),time:"",note:"",hours:1,rate:S.settings.rate,amount:round(Number(S.settings.rate)||0)};
+  openDlg(`<h2>${ed?"Editar clase":"Agendar clase"}</h2>
+    <div class="field"><label for="cN">Alumno o concepto</label><input id="cN" name="note" placeholder="Ej. Clases con Lucía" value="${esc(a.note)}"></div>
+    <div class="two"><div class="field"><label for="cD">Fecha</label><input id="cD" name="date" type="date" required value="${esc(a.date)}"></div>
+    <div class="field"><label for="cT">Hora</label><input id="cT" name="time" type="time" value="${esc(a.time||"")}"></div></div>
+    <div class="two"><div class="field"><label for="cH">Horas</label><input id="cH" name="hours" type="number" inputmode="decimal" min="0" step="0.25" value="${esc(a.hours||"")}"></div>
+    <div class="field"><label for="cR">Tarifa por hora</label><input id="cR" name="rate" type="number" inputmode="decimal" min="0" step="0.5" value="${esc(a.rate||"")}"></div></div>
+    <div class="field"><label for="cA">Monto</label><input id="cA" name="amount" type="number" inputmode="decimal" min="0" step="0.01" required value="${esc(a.amount)}"></div>
+    ${ed?"":`<div class="field"><label for="cRep">Repetir</label><select id="cRep" name="rep"><option value="1">Solo esta vez</option><option value="4">Cada semana, 4 semanas</option><option value="8">Cada semana, 8 semanas</option><option value="12">Cada semana, 12 semanas</option></select></div>`}
+    ${acts(ed)}`,fd=>{
+    const amount=round(Number(fd.get("amount"))||0);if(!(amount>0)){toast("Escribe un monto mayor que cero");return false}
+    const rec={date:fd.get("date"),time:fd.get("time")||"",note:String(fd.get("note")||"").trim(),hours:Number(fd.get("hours"))||undefined,rate:Number(fd.get("rate"))||undefined,amount};
+    if(ed){Object.assign(a,rec);toast("Clase actualizada");return}
+    const n=Number(fd.get("rep"))||1;S.agenda=S.agenda||[];
+    for(let i=0;i<n;i++){const d=new Date(rec.date+"T12:00");d.setDate(d.getDate()+7*i);
+      S.agenda.push(Object.assign({},rec,{id:uid(),date:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}))}
+    toast(n>1?n+" clases agendadas":"Clase agendada");
+  },()=>{S.agenda=S.agenda.filter(x=>x.id!==a.id)});
+  const h=dform.querySelector("#cH"),rr=dform.querySelector("#cR"),am=dform.querySelector("#cA");
+  const calc=()=>{if(h.value&&rr.value)am.value=round(Number(h.value)*Number(rr.value))};h.oninput=calc;rr.oninput=calc;
 }
 
 /* ---------- pago del carro ---------- */
@@ -541,6 +613,7 @@ function carCard(){
     <div class="track big"><b style="width:${pct}%"></b></div>
     <div class="savedrow"><span>Ahorro ya apartado para este pago: <b class="num">${money(st.saved)}</b></span><button class="btn small ghost" data-act="carsaved">${st.saved?"Cambiar":"+ Añadir ahorro"}</button></div>
     <p style="margin:10px 0 0">${st.missing>0?(st.rate>0?`Para el carro necesitas <b>${fmtHrs(st.hrs)} horas de clase más</b> a ${money(st.rate)}/h antes del ${esc(dueLabel(st.due.k,st.due.day))}${st.days>=7?` (unas ${fmtHrs(Math.ceil(st.hrs/(st.days/7)*2)/2)} h por semana)`:""}.`:`Te faltan ${money(st.missing)}.`):`Con lo que llevas reunido ya cubres el pago.`}</p>
+    ${(()=>{const ag=agendaIn(st.col);return st.missing>0&&ag.amt>0?`<p class="tiny" style="margin:6px 0 0">Tienes <b>${money(ag.amt)}</b> en clases agendadas en ${esc(monthName(st.col).split(" ")[0].toLowerCase())}. ${ag.amt>=st.missing?"Si las das y te pagan, cubres el carro.":`Si las das y te pagan, te faltarían ${money(st.missing-ag.amt)}.`}</p>`:""})()}
     ${st.deficit>0?`<p class="warnbox">Además, este mes tus gastos superan tus ingresos en <b>${money(st.deficit)}</b>${st.rate>0?`. ${st.missing>0?"Sumando lo del carro, en total necesitas":"Para cubrirlo necesitas"} <b>${fmtHrs(st.hrsAll)} horas de clase</b>`:""}.</p>`:""}
     <p class="tiny" style="margin:6px 0 0">Ingresos de ${esc(monthName(st.col).split(" ")[0].toLowerCase())} (${money(st.inc,{dec:0})}) menos sus gastos (${money(st.out,{dec:0})})${st.pendingOut?` y los fijos que aún te quedan por pagar este mes (${money(st.pendingOut,{dec:0})})`:""} = ${money(st.avail)}${st.saved?`, más ${money(st.saved)} de ahorro apartado`:""}.</p>
   </section>`;
@@ -564,8 +637,8 @@ function carPanel(){
 }
 function vResumen(){
   const k=ui.month,T=monthTotals(k),N=needFor(k),rate=Number(S.settings.rate)||0;
-  const pct=N.need>0?Math.min(100,T.inc/N.need*100):100;
-  const missing=Math.max(0,N.need-T.inc);
+  const pct=N.need>0?Math.min(100,T.paid/N.need*100):100;
+  const missing=Math.max(0,N.need-T.paid);const AG=agendaIn(k);
   const hrs=rate>0?Math.ceil(missing/rate*2)/2:0;
   const pend=[];
   S.incomes.forEach(i=>{const link="inc:"+i.id+":"+k;const got=findIncomeTx("inc",i,k);pend.push({type:"in",name:i.name,amount:got?got.amount:Number(i.amount),category:(i.category||"Sueldo")+(got?"":" · escribe lo que cobraste"),link,done:!!got,txId:got&&got.id,day:i.day,id:i.id,src:"inc"})});
@@ -579,15 +652,17 @@ function vResumen(){
     <div class="label">Necesitas ganar este mes</div>
     <div class="big num">${money(N.need)}</div>
     <div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><b style="width:${pct}%"></b></div>
-    <p>${T.inc>=N.need?`Ya cubriste tus gastos previstos${S.settings.savings>0?" y tu ahorro":""}. Llevas <b>${money(T.inc)}</b> de ingresos.`:`Llevas <b>${money(T.inc)}</b>. Te faltan <b>${money(missing)}</b>${rate>0?`, unas <b>${String(hrs).replace(".",",")} horas de clase</b> a ${money(rate)}/h`:""}.`}</p>
+    <p>${T.paid>=N.need?`Ya cubriste tus gastos previstos${S.settings.savings>0?" y tu ahorro":""}. Llevas <b>${money(T.paid)}</b> de ingresos.`:`Llevas <b>${money(T.paid)}</b>. Te faltan <b>${money(missing)}</b>${rate>0?`, unas <b>${String(hrs).replace(".",",")} horas de clase</b> a ${money(rate)}/h`:""}.`}</p>
+    ${T.pend||AG.amt?`<p class="tiny" style="color:inherit;opacity:.9">${[T.pend?`${money(T.pend)} en clases por cobrar`:"",AG.amt?`${money(AG.amt)} en ${AG.n} ${AG.n===1?"clase agendada":"clases agendadas"}`:""].filter(Boolean).join(" y ")}${missing>0?(T.pend+AG.amt>=missing?". Con eso cubrirías lo que falta.":`. Con eso te faltarían ${money(missing-T.pend-AG.amt)}.`):"."}</p>`:""}
     <p class="tiny" style="color:inherit;opacity:.8">${money(N.exp)} de gastos previstos${S.settings.savings>0?` + ${money(S.settings.savings)} de ahorro`:""}</p>
   </section>
   ${carCard()}
   ${pendingPanel()}
+  ${nextClassesPanel()}
   <div class="kpis">
-    <div class="k"><div class="label">Ingresos</div><div class="v num pos">${money(T.inc)}</div><div class="s">${money(T.incFix)} fijos · ${money(T.incVar)} variables${T.pend?`<br><span style="color:var(--warn)">${money(T.pend)} por cobrar</span>`:""}</div></div>
+    <div class="k"><div class="label">Ingresos cobrados</div><div class="v num pos">${money(T.paid)}</div><div class="s">${money(T.incFix)} fijos · ${money(T.incVar-T.pend)} variables${T.pend?`<br><span style="color:var(--warn)">+ ${money(T.pend)} por cobrar</span>`:""}</div></div>
     <div class="k"><div class="label">Gastos</div><div class="v num neg">${money(T.out)}</div><div class="s">de ${money(N.exp)} previstos</div></div>
-    <div class="k"><div class="label">Saldo del mes</div><div class="v num ${T.bal>=0?"pos":"neg"}">${money(T.bal)}</div><div class="s">${T.hours?`${String(T.hours).replace(".",",")} h de clase dadas`:"ingresos − gastos"}</div></div>
+    <div class="k"><div class="label">Saldo del mes</div><div class="v num ${T.cash>=0?"pos":"neg"}">${money(T.cash)}</div><div class="s">${T.hours?`${String(T.hours).replace(".",",")} h de clase dadas`:"cobrado − gastos"}</div></div>
   </div>
   <div class="split">
   <section class="panel"><header><h2>Fijos de ${esc(monthName(k).split(" ")[0].toLowerCase())}</h2><span class="tiny">Anota lo que cobraste y pagaste</span></header>
@@ -610,7 +685,7 @@ function vMov(){
     <button type="button" data-filter="all" aria-pressed="${f==="all"}">Todos</button>
     <button type="button" data-filter="in" aria-pressed="${f==="in"}">Ingresos</button>
     <button type="button" data-filter="out" aria-pressed="${f==="out"}">Gastos</button></div>
-  <div class="kpis"><div class="k"><div class="label">Ingresos</div><div class="v num pos">${money(T.inc)}</div></div><div class="k"><div class="label">Gastos</div><div class="v num neg">${money(T.out)}</div></div><div class="k"><div class="label">Saldo</div><div class="v num ${T.bal>=0?"pos":"neg"}">${money(T.bal)}</div></div></div>
+  <div class="kpis"><div class="k"><div class="label">Ingresos cobrados</div><div class="v num pos">${money(T.paid)}</div>${T.pend?`<div class="s" style="color:var(--warn)">+ ${money(T.pend)} por cobrar</div>`:""}</div><div class="k"><div class="label">Gastos</div><div class="v num neg">${money(T.out)}</div></div><div class="k"><div class="label">Saldo</div><div class="v num ${T.cash>=0?"pos":"neg"}">${money(T.cash)}</div></div></div>
   <section class="panel">${shown.length?Object.keys(groups).map(d=>`<div class="label" style="margin:10px 0 2px">${esc(dayLabel(d))}</div><div class="rows">${groups[d].map(txRow).join("")}</div>`).join(""):`<div class="empty">No hay movimientos en ${esc(monthName(ui.month))}.<br><br><button class="btn" data-act="newtx">Añadir movimiento</button></div>`}</section></div>`;
 }
 function vPlan(){
@@ -816,6 +891,8 @@ function bindView(){
   $view.querySelectorAll("[data-new]").forEach(b=>b.onclick=()=>openItem(b.dataset.new));
   $view.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{ui.filter=b.dataset.filter;render()});
   $view.querySelectorAll("[data-paid]").forEach(b=>b.onclick=()=>markPaid(b.dataset.paid,true));
+  $view.querySelectorAll("[data-given]").forEach(b=>b.onclick=()=>markGiven(b.dataset.given));
+  $view.querySelectorAll("[data-edit-cls]").forEach(b=>b.onclick=()=>openClass((S.agenda||[]).find(a=>a.id===b.dataset.editCls)));
   $view.querySelectorAll("[data-reg]").forEach(b=>b.onclick=()=>registerLink(b.dataset.reg));
   $view.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>act(b.dataset.act));
   const sf=document.getElementById("setForm");
@@ -835,6 +912,7 @@ function act(a){
   if(a==="wipe"){S=blank();save();toast("Listo, empieza con tus datos");render()}
   else if(a==="keep"){S.example=false;save();render()}
   else if(a==="newtx")openTx();
+  else if(a==="newclass")openClass();
   else if(a==="carsaved")openCarSaved();
   else if(a==="addcar")openItem("rec",undefined,{name:"Pago del carro",category:"Pago de carro",amount:"",freq:"mensual",start:Number(curMonth().slice(5)),day:2});
   else if(a==="fbin")fbSignIn();
