@@ -135,10 +135,11 @@ main{min-width:0;padding-inline:16px;padding-block:0 110px;max-width:980px;width
 .ev.s{background:color-mix(in srgb,var(--c-fix) 22%,transparent)}
 .ev.p{background:color-mix(in srgb,var(--warn) 24%,transparent)}
 .ev.k{background:color-mix(in srgb,var(--in) 22%,transparent)}
+.ev.x{background:var(--sunk);color:var(--ink3);text-decoration:line-through;box-shadow:inset 0 0 0 1px var(--line)}
 .ev.more{background:none;color:var(--ink3);padding:0}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--ink2);margin-top:10px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-@media (max-width:520px){.cal .d{min-height:52px;padding:4px 3px}.ev:not(.more){font-size:0;height:6px;padding:0;border-radius:3px}.ev.s{background:var(--c-fix)}.ev.p{background:var(--warn)}.ev.k{background:var(--in)}.ev.more{font-size:.62rem}}
+@media (max-width:520px){.cal .d{min-height:52px;padding:4px 3px}.ev:not(.more){font-size:0;height:6px;padding:0;border-radius:3px}.ev.s{background:var(--c-fix)}.ev.p{background:var(--warn)}.ev.k{background:var(--in)}.ev.x{background:var(--ink3);opacity:.5}.ev.more{font-size:.62rem}}
 @media (max-width:520px){.row.cls{grid-template-columns:auto 1fr}.row.cls .acts{grid-column:1/-1;justify-content:flex-end}}
 .chip{font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
 .chipbtn{border:0;cursor:pointer;font:inherit;font-size:.72rem;font-weight:600;padding:5px 10px}
@@ -528,14 +529,23 @@ function markPaid(id,paid){const t=S.tx.find(x=>x.id===id);if(!t)return;
 
 /* ---------- agenda de clases ---------- */
 const clsKey=a=>a.date+" "+(a.time||"");
-const agendaSorted=()=>[...(S.agenda||[])].sort((a,b)=>clsKey(a).localeCompare(clsKey(b)));
-function agendaIn(k){const l=(S.agenda||[]).filter(a=>a.date.slice(0,7)===k);return{n:l.length,amt:l.reduce((x,a)=>x+Number(a.amount||0),0),hrs:l.reduce((x,a)=>x+(Number(a.hours)||0),0)}}
+const agendaSorted=()=>(S.agenda||[]).filter(a=>!a.cancelled).sort((a,b)=>clsKey(a).localeCompare(clsKey(b)));
+function agendaIn(k){const l=(S.agenda||[]).filter(a=>!a.cancelled&&a.date.slice(0,7)===k);return{n:l.length,amt:l.reduce((x,a)=>x+Number(a.amount||0),0),hrs:l.reduce((x,a)=>x+(Number(a.hours)||0),0)}}
 const timeLabel=t=>t?t.slice(0,5):"";
 function clsRow(a){
   const late=a.date<today();
   const sub=[dayLabel(a.date)+(a.time?" · "+timeLabel(a.time):""),a.hours?`${fmtHrs(a.hours)} h × ${money(Number(a.rate))}`:"",late?"¿La diste?":""].filter(Boolean).join(" · ");
   return `<div class="row cls${late?" late":""}"><div class="dot">Cl</div><div class="t"><b>${esc(a.note||"Clase")}</b><small>${esc(sub)}</small></div>
-  <div class="acts"><span class="amt num">${money(Number(a.amount))}</span><button class="btn small" data-given="${a.id}">Dada</button><button class="iconbtn" aria-label="Editar o eliminar" data-edit-cls="${a.id}">${svg("edit")}</button></div></div>`;
+  <div class="acts"><span class="amt num">${money(Number(a.amount))}</span><button class="btn small" data-given="${a.id}">Dada</button><button class="btn small ghost" data-cancel-cls="${a.id}">Cancelada</button><button class="iconbtn" aria-label="Editar o eliminar" data-edit-cls="${a.id}">${svg("edit")}</button></div></div>`;
+}
+function cancelRow(a){
+  return `<div class="row cls"><div class="dot">Cl</div><div class="t"><b style="text-decoration:line-through">${esc(a.note||"Clase")}</b><small>${esc(dayLabel(a.date)+(a.time?" · "+timeLabel(a.time):""))} · Cancelada</small></div>
+  <div class="acts"><span class="amt num muted" style="text-decoration:line-through">${money(Number(a.amount))}</span><button class="btn small ghost" data-uncancel-cls="${a.id}">Reactivar</button><button class="iconbtn" aria-label="Editar o eliminar" data-edit-cls="${a.id}">${svg("edit")}</button></div></div>`;
+}
+function setCancelled(id,on){const a=(S.agenda||[]).find(x=>x.id===id);if(!a)return;
+  if(on){a.cancelled=true;a.cancelledOn=today()}else{delete a.cancelled;delete a.cancelledOn}
+  save();render();
+  if(on)toast("Clase cancelada",{label:"Deshacer",fn:()=>setCancelled(id,false)});else toast("Clase reactivada");
 }
 function nextClassesPanel(){
   const list=agendaSorted();if(!list.length)return "";
@@ -545,7 +555,7 @@ function nextClassesPanel(){
 }
 function calEvents(){
   const m={};const add=(d,e)=>(m[d]=m[d]||[]).push(e);
-  (S.agenda||[]).forEach(a=>add(a.date,{k:"s",time:a.time||"",label:a.note||"Clase",amt:Number(a.amount)}));
+  (S.agenda||[]).forEach(a=>add(a.date,{k:a.cancelled?"x":"s",time:a.time||"",label:a.note||"Clase",amt:Number(a.amount)}));
   S.tx.forEach(t=>{if(t.type==="in"&&(t.category===CLASS_CAT||t.pending))add(t.date,{k:t.pending?"p":"k",time:"",label:t.note||"Clase",amt:t.amount})});
   Object.values(m).forEach(l=>l.sort((a,b)=>(a.time||"99").localeCompare(b.time||"99")));
   return m;
@@ -559,12 +569,12 @@ function calendarPanel(){
     const lab=`${d} de ${monthName(k).split(" ")[0].toLowerCase()}${l.length?`, ${l.length} ${l.length===1?"clase":"clases"}`:""}`;
     cells+=`<button type="button" class="d${ds===td?" today":""}" data-cal-day="${ds}" aria-pressed="${ds===sel}" aria-label="${esc(lab)}"><span class="n">${d}</span>${l.slice(0,3).map(e=>`<span class="ev ${e.k}">${esc((e.time?timeLabel(e.time)+" ":"")+e.label)}</span>`).join("")}${l.length>3?`<span class="ev more">+${l.length-3}</span>`:""}</button>`}
   let detail="";
-  if(sel){const ag=agendaSorted().filter(a=>a.date===sel),tx=S.tx.filter(t=>t.date===sel&&t.type==="in"&&(t.category===CLASS_CAT||t.pending));
+  if(sel){const ag=agendaSorted().filter(a=>a.date===sel),cx=(S.agenda||[]).filter(a=>a.cancelled&&a.date===sel),tx=S.tx.filter(t=>t.date===sel&&t.type==="in"&&(t.category===CLASS_CAT||t.pending));
     detail=`<div style="margin-top:14px"><div class="calhead" style="justify-content:space-between"><b style="text-align:left;min-width:0">${esc(new Date(sel+"T12:00").toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long"}).replace(/^./,c=>c.toUpperCase()))}</b><button class="btn small" data-newcls="${sel}">+ Agendar este día</button></div>
-      ${ag.length||tx.length?`<div class="rows">${ag.map(clsRow).join("")}${tx.map(txRow).join("")}</div>`:`<div class="empty" style="padding:12px">No hay clases este día.</div>`}</div>`}
+      ${ag.length||tx.length||cx.length?`<div class="rows">${ag.map(clsRow).join("")}${tx.map(txRow).join("")}${cx.map(cancelRow).join("")}</div>`:`<div class="empty" style="padding:12px">No hay clases este día.</div>`}</div>`}
   return `<section class="panel"><header><h2>Calendario</h2><div class="calhead"><button class="iconbtn" data-cal="-1" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></button><b>${esc(monthName(k))}</b><button class="iconbtn" data-cal="1" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button></div></header>
     <div class="cal">${cells}</div>
-    <div class="legend"><span><i style="background:var(--c-fix)"></i>Agendada</span><span><i style="background:var(--warn)"></i>Dada, por cobrar</span><span><i style="background:var(--in)"></i>Pagada</span></div>
+    <div class="legend"><span><i style="background:var(--c-fix)"></i>Agendada</span><span><i style="background:var(--warn)"></i>Dada, por cobrar</span><span><i style="background:var(--in)"></i>Pagada</span><span><i style="background:var(--ink3)"></i>Cancelada</span></div>
     ${detail||`<p class="tiny" style="margin:10px 0 0">Toca un día para ver sus clases o agendar una.</p>`}
   </section>`;
 }
@@ -573,10 +583,11 @@ function vClases(){
   const pend=S.tx.filter(t=>t.pending),pTot=pend.reduce((a,t)=>a+t.amount,0);
   const paid=S.tx.filter(t=>t.type==="in"&&t.category===CLASS_CAT&&!t.pending&&(t.paidOn||t.date).slice(0,7)===cur).sort((a,b)=>(b.paidOn||b.date).localeCompare(a.paidOn||a.date));
   const pdTot=paid.reduce((a,t)=>a+t.amount,0);
+  const canc=(S.agenda||[]).filter(a=>a.cancelled).sort((a,b)=>clsKey(b).localeCompare(clsKey(a)));const cancM=canc.filter(a=>a.date.slice(0,7)===cur);
   return `<div class="stack">
   <div class="mob-only"><button class="btn" data-act="newclass">+ Agendar clase</button></div>
   <div class="kpis">
-    <div class="k"><div class="label">Agendadas</div><div class="v num">${money(AG.amt)}</div><div class="s">${AG.n} ${AG.n===1?"clase":"clases"} en ${esc(monthName(cur).split(" ")[0].toLowerCase())}${AG.hrs?` · ${fmtHrs(AG.hrs)} h`:""}</div></div>
+    <div class="k"><div class="label">Agendadas</div><div class="v num">${money(AG.amt)}</div><div class="s">${AG.n} ${AG.n===1?"clase":"clases"} en ${esc(monthName(cur).split(" ")[0].toLowerCase())}${AG.hrs?` · ${fmtHrs(AG.hrs)} h`:""}${cancM.length?` · ${cancM.length} ${cancM.length===1?"cancelada":"canceladas"}`:""}</div></div>
     <div class="k"><div class="label">Dadas, por cobrar</div><div class="v num" style="color:var(--warn)">${money(pTot)}</div><div class="s">${pend.length} ${pend.length===1?"clase":"clases"}</div></div>
     <div class="k"><div class="label">Pagadas este mes</div><div class="v num pos">${money(pdTot)}</div><div class="s">${paid.length} ${paid.length===1?"clase":"clases"}</div></div>
   </div>
@@ -586,6 +597,7 @@ function vClases(){
   ${pendingPanel()||`<section class="panel"><header><h2>Clases por cobrar</h2></header><div class="empty">No tienes clases pendientes de pago.</div></section>`}
   <section class="panel"><header><h2>Pagadas en ${esc(monthName(cur).split(" ")[0].toLowerCase())}</h2></header>
     ${paid.length?`<div class="rows">${paid.map(txRow).join("")}</div>`:`<div class="empty">Aún no has cobrado clases este mes.</div>`}</section>
+  ${canc.length?`<section class="panel"><header><h2>Canceladas</h2><span class="tiny">No cuentan en tus montos</span></header><div class="rows">${canc.slice(0,20).map(cancelRow).join("")}</div></section>`:""}
   </div>`;
 }
 function markGiven(id){
@@ -941,6 +953,8 @@ function bindView(){
   $view.querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{ui.cal=addM(ui.cal||curMonth(),Number(b.dataset.cal));ui.calDay=null;render()});
   $view.querySelectorAll("[data-cal-day]").forEach(b=>b.onclick=()=>{ui.calDay=ui.calDay===b.dataset.calDay?null:b.dataset.calDay;render();const el=document.querySelector('[data-cal-day="'+ui.calDay+'"]');if(el)el.focus({preventScroll:true})});
   $view.querySelectorAll("[data-newcls]").forEach(b=>b.onclick=()=>openClass(undefined,b.dataset.newcls));
+  $view.querySelectorAll("[data-cancel-cls]").forEach(b=>b.onclick=()=>setCancelled(b.dataset.cancelCls,true));
+  $view.querySelectorAll("[data-uncancel-cls]").forEach(b=>b.onclick=()=>setCancelled(b.dataset.uncancelCls,false));
   $view.querySelectorAll("[data-given]").forEach(b=>b.onclick=()=>markGiven(b.dataset.given));
   $view.querySelectorAll("[data-edit-cls]").forEach(b=>b.onclick=()=>openClass((S.agenda||[]).find(a=>a.id===b.dataset.editCls)));
   $view.querySelectorAll("[data-reg]").forEach(b=>b.onclick=()=>registerLink(b.dataset.reg));
